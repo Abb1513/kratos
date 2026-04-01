@@ -60,6 +60,7 @@ message Data {
   }
   Database database = 1;
   Redis redis = 2;
+  Trace trace = 3;
 }
 
 enum LogLevel {
@@ -68,6 +69,10 @@ enum LogLevel {
   Warn = 2;
   Error = 3;
   Fatal = 4;
+}
+
+message Trace {
+  string url = 1 ;
 }
 
 message Log {

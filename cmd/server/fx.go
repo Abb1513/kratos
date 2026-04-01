@@ -49,7 +49,7 @@ func provideConfigs() (ConfigBundle, error) {
 	if err := validator.Validate(&bc); err != nil {
 		return ConfigBundle{}, err
 	}
-
+        initTracer(bc.GetData().GetTrace().GetUrl())
 	return ConfigBundle{
 		Bootstrap: &bc,
 		Data:      bc.Data,
@@ -62,14 +62,39 @@ func provideConfigs() (ConfigBundle, error) {
 // Provider function for logger with service information
 func provideLogger(zapLogger *zapv2.Logger) log.Logger {
 	return log.With(zapLogger,
-		"ts", log.DefaultTimestamp,
-		"caller", log.DefaultCaller,
-		"service.id", id,
-		"service.name", Name,
-		"service.version", Version,
-		"trace.id", tracing.TraceID(),
-		"span.id", tracing.SpanID(),
+		"service_id", id,
+		"service_name", Name,
+		"service_version", Version,
+		"trace_id", tracing.TraceID(),
+		"span_id", tracing.SpanID(),
 	)
+}
+
+// 设置全局trace
+func initTracer(endpoint string) error {
+	// 创建 exporter
+	exporter, err := otlptracehttp.New(context.Background(),
+		otlptracehttp.WithEndpoint(endpoint),
+		otlptracehttp.WithInsecure(),
+	)
+	if err != nil {
+		return err
+	}
+	tp := tracesdk.NewTracerProvider(
+		// 将基于父span的采样率设置为100%
+		tracesdk.WithSampler(tracesdk.ParentBased(tracesdk.TraceIDRatioBased(1.0))),
+		// 始终确保在生产中批量处理
+		tracesdk.WithBatcher(exporter),
+		// 在资源中记录有关此应用程序的信息
+		tracesdk.WithResource(resource.NewSchemaless(
+			semconv.ServiceNameKey.String(Name),
+			attribute.String("exporter", "otlp"),
+			attribute.String("service_name", Name),
+			attribute.String("version", Version),
+		)),
+	)
+	otel.SetTracerProvider(tp)
+	return nil
 }
 
 // newKratosApp function for Kratos application

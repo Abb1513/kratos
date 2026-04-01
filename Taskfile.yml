@@ -1,10 +1,26 @@
 version: '3'
 
+vars:
+  VERSION:
+    sh: git describe --tags --always
+
 tasks:
   build:
     deps: [proto]
     cmds:
-      - goreleaser build --snapshot
+      - mkdir -p bin
+      - go build -ldflags "-X main.Version={{.VERSION}}" -o ./bin/ ./...
+    silent: false
   proto:
     cmds:
+      - buf generate
+  format:
+    cmds:
+      - buf format
+  gen:
+      - go run cmd/gen/main.go
+  conf:
+    dir: internal/conf
+    cmds:
+      - buf dep update
       - buf generate

@@ -2,14 +2,17 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	"github.com/tpl-x/kratos/internal/biz"
 	"github.com/tpl-x/kratos/internal/data"
 	"github.com/tpl-x/kratos/internal/server"
 	"github.com/tpl-x/kratos/internal/service"
-	"go.uber.org/fx"
-	"os"
 
+	"github.com/go-kratos/kratos/v2/encoding/json"
 	_ "go.uber.org/automaxprocs"
+	"go.uber.org/fx"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // go build -ldflags "-X main.Version=x.y.z"
@@ -26,6 +29,11 @@ var (
 
 func init() {
 	flag.StringVar(&flagConf, "conf", "../../configs", "config path, eg: -conf config.yaml")
+	json.MarshalOptions = protojson.MarshalOptions{
+		EmitUnpopulated: true, //默认值不忽略
+		UseProtoNames:   true, //使用proto name返回http字段
+		//UseEnumNumbers:  true, //使用enum number返回http字段
+	}
 }
 
 func main() {
@@ -52,3 +60,4 @@ func main() {
 	// Run the application
 	app.Run()
 }
+
